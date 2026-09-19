@@ -25,7 +25,9 @@ $liteBin = Join-Path $root 'Bin\x64\Release (lite)'
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 
-# 按 ZIP 规范以正斜杠写入条目名（Compress-Archive / CreateFromDirectory 在 Windows 上会写成反斜杠）
+# 按 ZIP 规范以正斜杠写入条目名（Compress-Archive / CreateFromDirectory 在 Windows 上会写成反斜杠）。
+# 条目名用 Get-ChildItem -Name 取得（相对于指定目录），避免因路径形态差异（短路径/规范化）
+# 导致 Substring 计算出错误的相对路径。
 function New-ZipArchive {
     param(
         [Parameter(Mandatory = $true)][string]$SourceDir,
@@ -37,13 +39,20 @@ function New-ZipArchive {
 
     if (Test-Path $ZipPath) { Remove-Item -Force $ZipPath }
 
-    $sourceRoot = (Resolve-Path $SourceDir).Path.TrimEnd('\')
+    $sourceRoot = (Resolve-Path $SourceDir).Path
     $archive = [System.IO.Compression.ZipFile]::Open($ZipPath, [System.IO.Compression.ZipArchiveMode]::Create)
     try {
-        Get-ChildItem -Path $sourceRoot -Recurse -File | ForEach-Object {
-            $entryName = $_.FullName.Substring($sourceRoot.Length + 1).Replace('\', '/')
-            [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
-                $archive, $_.FullName, $entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+        Push-Location $sourceRoot
+        try {
+            Get-ChildItem -Recurse -File -Name | ForEach-Object {
+                $fullPath = Join-Path $sourceRoot $_
+                $entryName = $_.Replace('\', '/')
+                [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $archive, $fullPath, $entryName, [System.IO.Compression.CompressionLevel]::Optimal)
+            }
+        }
+        finally {
+            Pop-Location
         }
     }
     finally {
