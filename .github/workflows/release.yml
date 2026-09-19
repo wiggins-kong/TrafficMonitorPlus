@@ -77,7 +77,10 @@ jobs:
   build-and-upload:
     name: 编译并上传附件（x64 完整版 + Lite 版）
     needs: create-release
-    runs-on: windows-latest
+    # 项目使用 PlatformToolset=v143（VS 2022 工具集）并依赖 MFC/ATL，因此固定使用
+    # VS 2022 的 runner 镜像；windows-latest 已迁移到更新版本的 Visual Studio，
+    # 缺少 v143 的 MFC 库会导致 MSB8041 编译失败。
+    runs-on: windows-2022
     # 编译失败时不要让整个发布失败：Release（含说明）已经在上一个 job 创建好了
     continue-on-error: true
     steps:
@@ -86,11 +89,21 @@ jobs:
       - name: 把 MSBuild 加入 PATH
         uses: microsoft/setup-msbuild@v2
 
-      - name: 安装缺失的 VS 组件（MFC/ATL、C++/CLI、.NET Framework 4.7.2 目标包）
+      - name: 检查并补装编译所需的 VS 组件（MFC/ATL、C++/CLI、.NET Framework 4.7.2 目标包）
         shell: pwsh
         run: |
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           if (-not (Test-Path $vswhere)) { throw "找不到 vswhere.exe，请确认 runner 上安装了 Visual Studio" }
+
+          $instance = & $vswhere -latest -property installationPath
+          Write-Host "Visual Studio 实例：$instance"
+          $msvcRoot = Join-Path $instance 'VC\Tools\MSVC'
+          if (Test-Path $msvcRoot) {
+            Get-ChildItem $msvcRoot -Directory | ForEach-Object {
+              $hasMfc = Test-Path (Join-Path $_.FullName 'atlmfc')
+              Write-Host ("  工具集 {0}：MFC/ATL {1}" -f $_.Name, $(if ($hasMfc) { '已安装' } else { '缺失' }))
+            }
+          }
 
           $components = @(
             'Microsoft.VisualStudio.Component.VC.ATLMFC',
@@ -112,10 +125,9 @@ jobs:
             exit 0
           }
 
-          $vs = & $vswhere -latest -property installationPath
           $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
           Write-Host "缺少组件，开始安装：$($missing -join ', ')"
-          $arguments = @('modify', "--installPath `"$vs`"", '--quiet', '--norestart')
+          $arguments = @('modify', "--installPath `"$instance`"", '--quiet', '--norestart')
           foreach ($component in $missing) { $arguments += @('--add', $component) }
           Start-Process -FilePath $setup -ArgumentList $arguments -Wait
 
