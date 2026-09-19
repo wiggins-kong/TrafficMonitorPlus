@@ -28,7 +28,7 @@ jobs:
       tag: ${{ steps.meta.outputs.tag }}
       version: ${{ steps.meta.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -62,13 +62,17 @@ jobs:
           fi
           cat release_notes.md
 
-      - name: 创建 Release
+      - name: 创建或更新 Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.meta.outputs.tag }}" \
-            --title "TrafficMonitorPlus V${{ steps.meta.outputs.version }}" \
-            --notes-file release_notes.md
+          TITLE="TrafficMonitorPlus V${{ steps.meta.outputs.version }}"
+          if gh release view "${{ steps.meta.outputs.tag }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.meta.outputs.tag }} 已存在，更新标题与说明"
+            gh release edit "${{ steps.meta.outputs.tag }}" --title "$TITLE" --notes-file release_notes.md
+          else
+            gh release create "${{ steps.meta.outputs.tag }}" --title "$TITLE" --notes-file release_notes.md
+          fi
 
   build-and-upload:
     name: 编译并上传附件（x64 完整版 + Lite 版）
@@ -77,7 +81,10 @@ jobs:
     # 编译失败时不要让整个发布失败：Release（含说明）已经在上一个 job 创建好了
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
+      - name: 把 MSBuild 加入 PATH
+        uses: microsoft/setup-msbuild@v2
 
       - name: 安装缺失的 VS 组件（MFC/ATL、C++/CLI、.NET Framework 4.7.2 目标包）
         shell: pwsh
