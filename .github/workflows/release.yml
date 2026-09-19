@@ -1,0 +1,141 @@
+name: Release
+
+# 推送版本标签（V1.86.1 / v1.86.1）时自动发布 Release：
+#   1. create-release  —— 从 wiggins-kong/changelog.md 提取该版本的章节作为 Release note
+#   2. build-and-upload —— 编译 x64 完整版与 Lite 版，打包后作为附件上传
+# 也可以在 Actions 页面手动触发（Run workflow），填写要发布的标签名。
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'V*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的版本标签（例如 V1.86.1），需与 wiggins-kong/changelog.md 中的章节对应'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: 创建 Release（说明取自 changelog）
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 解析版本号
+        id: meta
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#[vV]}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "标签：$TAG    版本号：$VERSION"
+
+      - name: 生成 Release note
+        run: |
+          if python3 .github/scripts/extract_changelog.py wiggins-kong/changelog.md "${{ steps.meta.outputs.version }}" > release_notes.md; then
+            echo "已从 changelog.md 提取 ${{ steps.meta.outputs.version }} 的说明"
+          else
+            echo "::warning::changelog.md 中没有找到 ${{ steps.meta.outputs.version }} 的章节，改用提交记录生成说明"
+            PREV_TAG=$(git describe --tags --abbrev=0 "${{ steps.meta.outputs.tag }}^" 2>/dev/null || true)
+            {
+              echo "本版本未在 \`wiggins-kong/changelog.md\` 中找到对应章节，以下为自动生成的提交记录："
+              echo
+              echo '```'
+              if [ -n "$PREV_TAG" ]; then
+                git log --oneline --no-decorate "$PREV_TAG..${{ steps.meta.outputs.tag }}"
+              else
+                git log --oneline --no-decorate -20
+              fi
+              echo '```'
+            } > release_notes.md
+          fi
+          cat release_notes.md
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            --title "TrafficMonitorPlus V${{ steps.meta.outputs.version }}" \
+            --notes-file release_notes.md
+
+  build-and-upload:
+    name: 编译并上传附件（x64 完整版 + Lite 版）
+    needs: create-release
+    runs-on: windows-latest
+    # 编译失败时不要让整个发布失败：Release（含说明）已经在上一个 job 创建好了
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装缺失的 VS 组件（MFC/ATL、C++/CLI、.NET Framework 4.7.2 目标包）
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) { throw "找不到 vswhere.exe，请确认 runner 上安装了 Visual Studio" }
+
+          $components = @(
+            'Microsoft.VisualStudio.Component.VC.ATLMFC',
+            'Microsoft.VisualStudio.Component.VC.CLI.Support',
+            'Microsoft.Net.Component.4.7.2.TargetingPack'
+          )
+
+          function Get-MissingComponents {
+            $missing = @()
+            foreach ($component in $components) {
+              if (-not (& $vswhere -latest -requires $component -property installationPath)) { $missing += $component }
+            }
+            return $missing
+          }
+
+          $missing = Get-MissingComponents
+          if ($missing.Count -eq 0) {
+            Write-Host "编译所需的 VS 组件均已安装"
+            exit 0
+          }
+
+          $vs = & $vswhere -latest -property installationPath
+          $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+          Write-Host "缺少组件，开始安装：$($missing -join ', ')"
+          $arguments = @('modify', "--installPath `"$vs`"", '--quiet', '--norestart')
+          foreach ($component in $missing) { $arguments += @('--add', $component) }
+          Start-Process -FilePath $setup -ArgumentList $arguments -Wait
+
+          # VS 安装器可能提前返回，这里轮询确认组件是否真的装好了（最多等 15 分钟）
+          for ($i = 1; $i -le 30; $i++) {
+            $missing = Get-MissingComponents
+            if ($missing.Count -eq 0) { Write-Host "组件安装完成"; exit 0 }
+            Write-Host "[$i/30] 仍在安装中，缺少：$($missing -join ', ')"
+            Start-Sleep -Seconds 30
+          }
+          throw "组件安装未完成，仍缺少：$((Get-MissingComponents) -join ', ')"
+
+      - name: 编译（完整版 + Lite 版，x64 Release）
+        shell: cmd
+        run: |
+          msbuild TrafficMonitor.sln /p:Configuration=Release /p:Platform=x64 /m /v:m /nologo
+          msbuild TrafficMonitor_Lite.sln /p:Configuration="Release (lite)" /p:Platform=x64 /m /v:m /nologo
+
+      - name: 打包
+        shell: pwsh
+        run: |
+          .\.github\scripts\package_release.ps1 -Version "${{ needs.create-release.outputs.version }}"
+
+      - name: 上传附件到 Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.create-release.outputs.tag }}" dist/*.zip --clobber
+          gh release view "${{ needs.create-release.outputs.tag }}"

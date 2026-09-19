@@ -300,3 +300,14 @@ __pycache__/
 !/TrafficMonitor/language/*.ini
 *.diagsession
 enc_temp*
+
+# 发布打包输出（.github/scripts/package_release.ps1）
+/dist/
+
+# 硬件监控诊断工具 wiggins-kong/tools/lhm_probe 的编译产物与运行输出
+/wiggins-kong/tools/lhm_probe/*.exe
+/wiggins-kong/tools/lhm_probe/*.obj
+/wiggins-kong/tools/lhm_probe/*.txt
+
+# ZCode CLI 工作目录
+/.zcode/
