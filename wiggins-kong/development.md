@@ -241,8 +241,11 @@ git tag V1.86.2 && git push plus V1.86.2
 
 说明与注意事项：
 
-- Release 与构建是**两个 job**，创建 Release 在前、构建上传在后；构建 job 设置了 `continue-on-error: true`，所以构建万一失败，Release 仍然存在（只是没有附件），不会出现"什么都没发布"的情况。
-- 也支持手动触发（Actions → Release → Run workflow，填写标签名）。
+- Release 与构建是**两个 job**，创建 Release 在前、构建上传在后；构建 job 设置了 `continue-on-error: true`，所以构建万一失败，Release 仍然存在（只是没有附件），不会出现"什么都没发布"的情况。注意：这样一来工作流整体状态可能显示为成功，需要到 Actions 页面确认构建 job 是否也是 ✓。
+- 构建 job **固定使用 `windows-2022` runner**：项目用 `PlatformToolset=v143` 并依赖 MFC/ATL，而 `windows-latest` 已迁移到更新版本的 Visual Studio（实测为 VS 18），缺少 v143 的 MFC 库会直接报 `MSB8041: MFC libraries are required for this project`（伴随 `afxres.h` 找不到）。如果以后 windows-2022 退役，需要改用能提供 v143 + MFC 的镜像，或把项目工具集升级到镜像自带且有 MFC 的版本。
+- 构建前必须让 MSBuild 在 PATH 中（工作流用 `microsoft/setup-msbuild@v2`）；否则报 `'msbuild' is not recognized`。
+- 打包脚本按 ZIP 规范写入正斜杠条目名，并且用 `Get-ChildItem -Name` 取相对路径（用 `Substring` 算相对路径在 runner 上会因为路径形态差异产生诸如 `64/` 的错误前缀）。
+- 也支持手动触发（Actions → Release → Run workflow，填写标签名）；Release 已存在时会用 `gh release edit` 更新说明，附件用 `--clobber` 覆盖，因此可以安全重跑。
 - 标签前缀 `v` / `V` 都可以；`changelog.md` 中的章节标题必须能被版本号匹配到（`## V1.86.2`）。
 - 附件命名：`TrafficMonitorPlus_V<版本>_x64.zip`（完整版）、`TrafficMonitorPlus_V<版本>_x64_Lite.zip`（Lite 版）。
 - 目前只构建 x64；如需 x86 / ARM64EC，参照上游 `.github/workflows/main.yml` 增加 msbuild 调用与打包即可（Lite 解决方案已支持 `--p:Platform=x86` / `ARM64EC`）。
