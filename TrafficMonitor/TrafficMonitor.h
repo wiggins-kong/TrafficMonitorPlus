@@ -150,7 +150,12 @@ public:
     bool IsCheckingForUpdate() const { return m_checking_update; }      //是否正在检查更新
 
     void InitOpenHardwareLibInThread();     //开启一个后台线程初始化OpenHardwareMonitor
-    void UpdateOpenHardwareMonitorEnableState();    //更新硬件监控的启用/禁用状态
+    //更新硬件监控的启用/禁用状态。如果有硬件监控项启用失败，则返回false
+    bool UpdateOpenHardwareMonitorEnableState();
+    //设置某一项硬件监控的启用状态，并用SEH保护，避免硬件监控库中的异常导致程序崩溃
+    bool SafeSetHardwareEnable(HardwareItem item_type, bool enable);
+    //析构硬件监控对象，并用SEH保护，避免在硬件监控库中关闭硬件时导致程序崩溃
+    void SafeDestroyMonitor();
 
     //void UpdateTaskbarWndMenu();      //更新任务栏窗口右键菜单
     bool IsForceShowNotifyIcon();       //是否需要强制显示通知区图标

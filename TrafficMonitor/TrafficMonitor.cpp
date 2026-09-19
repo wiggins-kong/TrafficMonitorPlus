@@ -1145,17 +1145,112 @@ void CTrafficMonitorApp::InitOpenHardwareLibInThread()
 }
 
 
-void CTrafficMonitorApp::UpdateOpenHardwareMonitorEnableState()
+#ifndef WITHOUT_TEMPERATURE
+namespace
+{
+    //析构硬件监控对象时底层库会关闭硬件，这一过程中可能会引发异常，而__try不能用于包含需要析构的对象的函数，
+    //因此把reset()单独放在这个函数中
+    void ResetMonitorWithSEH(std::shared_ptr<OpenHardwareMonitorApi::IOpenHardwareMonitor>& monitor)
+    {
+        __try
+        {
+            monitor.reset();
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+    }
+}
+#endif
+
+//硬件监控库在设置硬件分组的启用状态时会立即枚举并初始化该硬件分组，这一过程中可能会引发异常，
+//甚至可能会在库内部引发访问冲突等无法用catch语句捕获的异常而导致程序崩溃，因此这里再用SEH保护一层。
+//注意：__try不能用于包含需要析构的对象的函数，因此本函数中不能出现C++对象
+bool CTrafficMonitorApp::SafeSetHardwareEnable(HardwareItem item_type, bool enable)
 {
 #ifndef WITHOUT_TEMPERATURE
-    if (m_pMonitor != nullptr)
+    auto pMonitor = m_pMonitor.get();
+    if (pMonitor == nullptr)
+        return false;
+    __try
     {
-        CSingleLock sync(&theApp.m_minitor_lib_critical, TRUE);
-        m_pMonitor->SetCpuEnable(m_general_data.IsHardwareEnable(HI_CPU));
-        m_pMonitor->SetGpuEnable(m_general_data.IsHardwareEnable(HI_GPU));
-        m_pMonitor->SetHddEnable(m_general_data.IsHardwareEnable(HI_HDD));
-        m_pMonitor->SetMainboardEnable(m_general_data.IsHardwareEnable(HI_MBD));
+        switch (item_type)
+        {
+        case HI_CPU: return pMonitor->SetCpuEnable(enable);
+        case HI_GPU: return pMonitor->SetGpuEnable(enable);
+        case HI_HDD: return pMonitor->SetHddEnable(enable);
+        case HI_MBD: return pMonitor->SetMainboardEnable(enable);
+        default: return false;
+        }
     }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return false;
+    }
+#else
+    UNREFERENCED_PARAMETER(item_type);
+    UNREFERENCED_PARAMETER(enable);
+    return true;
+#endif
+}
+
+void CTrafficMonitorApp::SafeDestroyMonitor()
+{
+#ifndef WITHOUT_TEMPERATURE
+    CSingleLock sync(&m_minitor_lib_critical, TRUE);
+    ResetMonitorWithSEH(m_pMonitor);
+#endif
+}
+
+bool CTrafficMonitorApp::UpdateOpenHardwareMonitorEnableState()
+{
+#ifndef WITHOUT_TEMPERATURE
+    if (m_pMonitor == nullptr)
+        return false;
+
+    struct HardwareEnableItem
+    {
+        HardwareItem item_type;
+        bool enable;
+        bool success;
+    };
+    HardwareEnableItem items[] =
+    {
+        { HI_CPU, m_general_data.IsHardwareEnable(HI_CPU), true },
+        { HI_GPU, m_general_data.IsHardwareEnable(HI_GPU), true },
+        { HI_HDD, m_general_data.IsHardwareEnable(HI_HDD), true },
+        { HI_MBD, m_general_data.IsHardwareEnable(HI_MBD), true },
+    };
+    {
+        CSingleLock sync(&m_minitor_lib_critical, TRUE);
+        for (auto& item : items)
+            item.success = SafeSetHardwareEnable(item.item_type, item.enable);
+    }
+
+    bool all_success = true;
+    for (auto& item : items)
+    {
+        if (!item.success)
+        {
+            //如果某一项硬件监控启用失败，则将该项的设置改回禁用，避免每次获取硬件数据时都出现错误
+            all_success = false;
+            m_general_data.SetHardwareEnable(item.item_type, false);
+        }
+    }
+    if (!all_success)
+    {
+        CString error_info = CCommon::LoadText(IDS_HARDWARE_INFO_ACQUIRE_FAILED_ERROR);
+        std::wstring error_detail = OpenHardwareMonitorApi::GetErrorMessage();
+        if (!error_detail.empty())
+        {
+            error_info += L"\r\n";
+            error_info += error_detail.c_str();
+        }
+        AfxMessageBox(error_info, MB_ICONERROR | MB_OK);
+    }
+    return all_success;
+#else
+    return true;
 #endif
 }
 

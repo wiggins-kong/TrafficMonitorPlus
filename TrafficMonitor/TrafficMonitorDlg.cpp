@@ -871,8 +871,7 @@ void CTrafficMonitorDlg::ApplySettings(COptionsDlg& optionsDlg)
         //如果关闭了硬件监控，则析构硬件监控类
         if (theApp.m_general_data.hardware_monitor_item == 0)
         {
-            CSingleLock sync(&theApp.m_minitor_lib_critical, TRUE);
-            theApp.m_pMonitor.reset();
+            theApp.SafeDestroyMonitor();
         }
         else if (theApp.m_pMonitor != nullptr)
         {

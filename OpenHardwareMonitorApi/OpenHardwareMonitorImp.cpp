@@ -106,24 +106,62 @@ namespace OpenHardwareMonitorApi
         return m_all_hdd_usage;
     }
 
-    void COpenHardwareMonitor::SetCpuEnable(bool enable)
+    //由于在这里设置硬件的启用状态时，LibreHardwareMonitor会立即枚举并初始化该硬件分组，
+    //如果枚举过程中出现了错误，则可能会引发异常，因此这里用try catch语句包裹，防止程序崩溃
+    bool COpenHardwareMonitor::SetCpuEnable(bool enable)
     {
-        MonitorGlobal::Instance()->computer->IsCpuEnabled = enable;
+        try
+        {
+            MonitorGlobal::Instance()->computer->IsCpuEnabled = enable;
+            return true;
+        }
+        catch (System::Exception^ e)
+        {
+            error_message = ClrStringToStdWstring(e->Message);
+            return false;
+        }
     }
 
-    void COpenHardwareMonitor::SetGpuEnable(bool enable)
+    bool COpenHardwareMonitor::SetGpuEnable(bool enable)
     {
-        MonitorGlobal::Instance()->computer->IsGpuEnabled = enable;
+        try
+        {
+            MonitorGlobal::Instance()->computer->IsGpuEnabled = enable;
+            return true;
+        }
+        catch (System::Exception^ e)
+        {
+            error_message = ClrStringToStdWstring(e->Message);
+            return false;
+        }
     }
 
-    void COpenHardwareMonitor::SetHddEnable(bool enable)
+    bool COpenHardwareMonitor::SetHddEnable(bool enable)
     {
-        MonitorGlobal::Instance()->computer->IsStorageEnabled = enable;
+        try
+        {
+            MonitorGlobal::Instance()->computer->IsStorageEnabled = enable;
+            return true;
+        }
+        catch (System::Exception^ e)
+        {
+            error_message = ClrStringToStdWstring(e->Message);
+            return false;
+        }
     }
 
-    void COpenHardwareMonitor::SetMainboardEnable(bool enable)
+    bool COpenHardwareMonitor::SetMainboardEnable(bool enable)
     {
-        MonitorGlobal::Instance()->computer->IsMotherboardEnabled = enable;
+        try
+        {
+            MonitorGlobal::Instance()->computer->IsMotherboardEnabled = enable;
+            return true;
+        }
+        catch (System::Exception^ e)
+        {
+            error_message = ClrStringToStdWstring(e->Message);
+            return false;
+        }
     }
 
     bool COpenHardwareMonitor::GetCPUFreq(IHardware^ hardware, float& freq) {
@@ -419,7 +457,15 @@ namespace OpenHardwareMonitorApi
 
     void MonitorGlobal::UnInit()
     {
-        computer->Close();
+        //关闭硬件监控时也可能会引发异常，用try catch语句包裹，防止程序退出时崩溃
+        try
+        {
+            computer->Close();
+        }
+        catch (System::Exception^ e)
+        {
+            error_message = ClrStringToStdWstring(e->Message);
+        }
     }
 
 }

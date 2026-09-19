@@ -21,10 +21,11 @@ namespace OpenHardwareMonitorApi
         virtual const std::map<std::wstring, float>& AllCpuTemperature() = 0;   //返回所有CPU（核心）的温度。map的key是CPU的名称，value是硬盘的温度
         virtual const std::map<std::wstring, float>& AllHDDUsage() = 0;         //返回所有硬盘的使用率
 
-        virtual void SetCpuEnable(bool enable) = 0;
-        virtual void SetGpuEnable(bool enable) = 0;
-        virtual void SetHddEnable(bool enable) = 0;
-        virtual void SetMainboardEnable(bool enable) = 0;
+        //设置硬件监控的启用状态，如果硬件监控库在设置时出错，则返回false
+        virtual bool SetCpuEnable(bool enable) = 0;
+        virtual bool SetGpuEnable(bool enable) = 0;
+        virtual bool SetHddEnable(bool enable) = 0;
+        virtual bool SetMainboardEnable(bool enable) = 0;
     };
 
     OPENHARDWAREMONITOR_API std::shared_ptr<IOpenHardwareMonitor> CreateInstance();
