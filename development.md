@@ -1,7 +1,32 @@
 # TrafficMonitorPlus 开发文档
 
 > 目的：让任何一台电脑上的开发者 / agent 能无缝接手本项目。
-> 最后更新：2026-09-18（对应版本 V1.86.1，分支 `master`）
+> 最后更新：2026-09-28（对应版本 V1.86.2，分支 `master`）
+
+---
+
+## 0. 新会话接手顺序
+
+新开 Codex / 开发会话时，按以下顺序获取上下文：
+
+1. 运行 `git status --short --branch`，确认当前分支和工作区是否干净。
+2. 阅读 `README.md`，了解项目定位、当前版本和面向用户的改动。
+3. 阅读 `changelog.md` 顶部的最新版本章节，确认最近一次发布范围。
+4. 阅读本文件，重点查看“当前状态”“构建”“发布流程”和“待办 / 已知问题”。
+5. 运行一次与任务匹配的构建，确认基线可编译。
+6. 修改代码后，同步更新 `changelog.md`；准备发版时再执行第 2 节的版本号清单。
+
+### 当前状态
+
+- 当前版本：**V1.86.2**。
+- `master` 是唯一发布线，标签格式为 `V<major>.<minor>.<patch>`。
+- 文档入口：
+  - `README.md`：面向用户和下载者。
+  - `changelog.md`：版本更新记录，也是 GitHub Release note 的来源。
+  - `development.md`：本文件，记录架构、构建、验证和发版流程。
+  - `皮肤制作教程.md`：面向皮肤作者的完整教程。
+- V1.86.2 新增皮肤跟随 Windows 深浅色自动切换，并补齐了完整皮肤制作教程。
+- V1.86.1 的硬件监控崩溃修复仍然保留，回归测试时不要破坏相关异常保护。
 
 ---
 
@@ -15,16 +40,16 @@
 
 ### 远程与分支约定
 
-- `origin` = `mackid1993/TrafficMonitor`（只用于对比、合并上游，**不要**往这里推）
-- `plus`（本地建议新增）= `wiggins-kong/TrafficMonitorPlus`（本仓库，推送目标）
+- `origin` = `wiggins-kong/TrafficMonitorPlus`（本仓库，提交和标签都推送到这里）
+- `upstream` 可配置为 `mackid1993/TrafficMonitor`（仅用于对比和合并上游，不作为推送目标）
 
 ```
-git remote add plus https://github.com/wiggins-kong/TrafficMonitorPlus
+git remote add upstream https://github.com/mackid1993/TrafficMonitor
 ```
 
 - `master` = 上游 master + mackid1993 的 `feature/reserve-taskbar-space` + 本仓库的修改（**发布线**）。
-  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → 本仓库 V1.86.1 的提交`。
-- 工作分支命名参考：`fix/hardware-monitor-crash-taskbar`（V1.86.1 的修复就是在这条分支上做的）。
+  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → V1.86.1 → V1.86.2`。
+- 工作分支命名参考：`feat/skin-theme-auto-switch`。
 - 发布：在 `master` 上打 `V<版本>` 标签并推送，工作流会自动编译并发布 Release（见第 7 节）。
 
 ---
@@ -35,15 +60,15 @@ git remote add plus https://github.com/wiggins-kong/TrafficMonitorPlus
 
 | 文件 | 需要修改的内容 | 作用 |
 | --- | --- | --- |
-| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.1"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
-| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,1,0`、`PRODUCTVERSION 1,86,1,0`、`VALUE "FileVersion", "1.86.1.0"`、`VALUE "ProductVersion", "1.86.1.0"` | 可执行文件属性里的版本 |
-| `version.info` | `<version>1.86.1</version>` | 更新信息文件元数据（Gitee 用） |
-| `version_utf8.info` | `<version>1.86.1</version>` | 更新信息文件元数据（GitHub 用） |
+| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.2"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
+| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,2,0`、`PRODUCTVERSION 1,86,2,0`、`VALUE "FileVersion", "1.86.2.0"`、`VALUE "ProductVersion", "1.86.2.0"` | 可执行文件属性里的版本 |
+| `version.info` | `<version>1.86.2</version>` | 更新信息文件元数据（Gitee 用） |
+| `version_utf8.info` | `<version>1.86.2</version>` | 更新信息文件元数据（GitHub 用） |
 
 注意事项：
 
 - `TrafficMonitor.rc` 是 **UTF-16LE** 编码，请用支持 UTF-16 的编辑器修改；命令行里 grep 要加 `-a`。
-- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的 `1,86,1,0`，**不要改回 `1,8,6,1`**。
+- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的四段形式，例如 V1.86.2 对应 `1,86,2,0`，**不要改回 `1,8,6,2`**。
 - 程序运行时**不读**本地的 `version.info` / `version_utf8.info`；它们只是随包提供的元数据。程序内置的更新检查请求的是上游仓库的 URL（见 `TrafficMonitor/UpdateHelper.cpp`，仍然是 `zhongyang219`），如果要改成 TrafficMonitorPlus 自己的更新通道，需要同时改这里和上面的下载链接（见第 8 节待办）。
 
 ---
@@ -228,16 +253,16 @@ SetHddEnable(true)       -> false
 ```
 git switch master && git pull
 # 1) 更新第 2 节的 4 个版本号位置
-# 2) 在 wiggins-kong/changelog.md 顶部新增一节：## V1.86.2
+# 2) 在根目录 changelog.md 顶部新增一节：## V1.86.2
 git commit -am "chore: 版本号更新到 V1.86.2"
-git push plus master
-git tag V1.86.2 && git push plus V1.86.2
+git push origin master
+git tag V1.86.2 && git push origin V1.86.2
 ```
 
 工作流 `.github/workflows/release.yml` 会在标签推送后：
 
-1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从 `wiggins-kong/changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.2`）。
-2. **build-and-upload**（windows-latest）：检查并按需补装 MFC/ATL、C++/CLI、.NET 4.7.2 目标包 → 编译完整版与 Lite 版（x64）→ 用 `.github/scripts/package_release.ps1` 打包 → `gh release upload` 上传两个 zip。
+1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从根目录 `changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.2`）。
+2. **build-and-upload**（windows-2022）：检查并按需补装 MFC/ATL、C++/CLI、.NET 4.7.2 目标包 → 编译完整版与 Lite 版（x64）→ 用 `.github/scripts/package_release.ps1` 打包 → `gh release upload` 上传两个 zip。
 
 说明与注意事项：
 
@@ -264,11 +289,50 @@ LICENSE_CN
 
 ---
 
-## 8. 待办 / 已知问题
+## 8. 皮肤与深浅色主题子系统
+
+### 8.1 配置与界面
+
+- 配置结构：`TrafficMonitor/CommonData.h` 的 `MainConfigData`：
+  - `skin_auto_adapt`
+  - `skin_name_dark_mode`
+  - `skin_name_light_mode`
+- 配置读写：`CTrafficMonitorApp::LoadConfig()` / `SaveConfig()`，对应 `config.ini` 的 `[skins]` 段。
+- 皮肤清单与每个皮肤的独立字体、颜色、文本设置：`SkinManager.cpp`。
+- 皮肤选择与自动切换开关：`SkinDlg.cpp`。
+- 深色/浅色皮肤下拉框：`SkinAutoAdaptSettingDlg.cpp`。
+
+### 8.2 运行时流程
+
+1. `CWinVersionHelper` 构造时调用 `CWindowsSettingHelper::CheckWindows10LightTheme()`。
+2. `CTrafficMonitorDlg::OnInitDialog()` 初始化 `CSkinManager`，再通过 `GetAutoAdaptSkinIndex()`选择启动皮肤。
+3. `CTrafficMonitorDlg::OnTimer()` 每秒重新读取 `SystemUsesLightTheme`。
+4. 主题状态变化后调用 `GetAutoAdaptSkinIndex()`，目标皮肤发生变化时执行 `ApplySkin()`。
+5. `ApplySkin()` 负责重新加载布局、背景、字体、颜色、显示文本，并保存配置。
+6. 用户在皮肤设置中确认后，`OnChangeSkin()` 也会立即解析并应用当前模式对应皮肤。
+
+`GetAutoAdaptSkinIndex()` 必须保留以下回退规则：
+
+- 非 Windows 10/11 或未启用自动切换时返回 `-1`；
+- 映射为空时返回 `-1`；
+- 配置的皮肤名称不存在时返回 `-1`；
+- 返回 `-1` 时保持当前皮肤，不能默认使用皮肤索引 `0`。
+
+### 8.3 最小验证
+
+- 启动时 Windows 浅色模式应用浅色映射，深色模式应用深色映射。
+- 仅修改映射并确认后，当前皮肤立即更新。
+- 删除其中一套皮肤后，程序回退到当前皮肤且不崩溃。
+- 两套映射选择同一皮肤时，主题变化不应触发不必要的重新加载。
+- 旧配置中的皮肤名称带前导斜杠时，应通过 `SkinNameNormalize()` 正常匹配。
+
+---
+
+## 9. 待办 / 已知问题
 
 - [ ] **显卡温度**：本机（Intel 显卡）在 0.9.4 / 0.9.6 下都取不到 GPU 温度传感器（能取到利用率），"显卡温度"恒为 `--`。如需进一步确认，可在目标机器上跑官方 LibreHardwareMonitor GUI 看是否存在温度节点；这属于库/硬件限制，不是 TrafficMonitor 的 bug。
 - [ ] **更新通道**：`TrafficMonitor/UpdateHelper.cpp` 仍指向 `zhongyang219` 的仓库；若要改成 TrafficMonitorPlus 自己的更新通道，需要同时更新 `version.info` / `version_utf8.info` 中的链接（目前只改了 `<version>`）。
 - [ ] **发行包默认的 LibreHardwareMonitor 版本**：当前仓库签入 0.9.4（无需额外依赖）。若想随包提供 0.9.6（能读更细的硬盘/SSD 信息），必须同时打包 `DiskInfoToolkit.dll` + `BlackSharp.Core.dll`（见 4.3），并在 `package_release.ps1` 里补上这些文件。
 - [ ] 构建产物默认只有 x64 完整版 + x64 Lite 版；x86 / ARM64EC 未接入自动发布。
-- [ ] `TrafficMonitor.rc` 的 `FILEVERSION` 已改为 `1,86,1,0`（与显示版本一致），后续版本按 `1,86,N,0` 递增。
+- [ ] 后续版本按 `1,86,N,0` 递增 `FILEVERSION` / `PRODUCTVERSION`，并同步显示版本。
 - [ ] 仓库根目录下 `Screenshots/`、`UpdateLog/`、`Help*.md` 仍是上游内容，未做本地化调整（需要时再更新）。

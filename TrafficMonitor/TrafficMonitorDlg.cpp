@@ -1035,6 +1035,27 @@ void CTrafficMonitorDlg::CheckClickedItem(CPoint point)
     }
 }
 
+int CTrafficMonitorDlg::GetAutoAdaptSkinIndex() const
+{
+    if (!theApp.m_win_version.IsWindows10OrLater() || !theApp.m_cfg_data.skin_auto_adapt)
+        return -1;
+
+    const std::wstring& configured_skin_name{
+        CWindowsSettingHelper::IsWindows10LightTheme() ? theApp.m_cfg_data.skin_name_light_mode : theApp.m_cfg_data.skin_name_dark_mode };
+    if (configured_skin_name.empty())
+        return -1;
+
+    std::wstring skin_name{ configured_skin_name };
+    CSkinManager::SkinNameNormalize(skin_name);
+    int skin_index = CSkinManager::Instance().FindSkinIndex(skin_name);
+    if (skin_index >= 0 && skin_index < CSkinManager::Instance().Size()
+        && CSkinManager::Instance().GetSkinName(skin_index) == skin_name)
+    {
+        return skin_index;
+    }
+    return -1;
+}
+
 void CTrafficMonitorDlg::ApplySkin(int skin_index)
 {
     if (skin_index < 0 || skin_index >= CSkinManager::Instance().Size())
@@ -1124,6 +1145,10 @@ BOOL CTrafficMonitorDlg::OnInitDialog()
     //初始化皮肤
     CSkinManager::Instance().Init();
     m_skin_selected = CSkinManager::Instance().FindSkinIndex(theApp.m_cfg_data.m_skin_name);
+    int auto_adapt_skin_index = GetAutoAdaptSkinIndex();
+    if (auto_adapt_skin_index >= 0)
+        m_skin_selected = auto_adapt_skin_index;
+    theApp.m_cfg_data.m_skin_name = CSkinManager::Instance().GetSkinName(m_skin_selected);
 
     //根据当前选择的皮肤获取布局数据
     if (LoadSkinLayout())
@@ -1944,8 +1969,9 @@ void CTrafficMonitorDlg::OnTimer(UINT_PTR nIDEvent)
             //根据深色/浅色模式自动切换皮肤
             if (theApp.m_win_version.IsWindows10OrLater() && theApp.m_cfg_data.skin_auto_adapt)
             {
-                int skin_index = CSkinManager::Instance().FindSkinIndex(light_mode ? theApp.m_cfg_data.skin_name_light_mode : theApp.m_cfg_data.skin_name_dark_mode);
-                ApplySkin(skin_index);
+                int skin_index = GetAutoAdaptSkinIndex();
+                if (skin_index >= 0 && skin_index != m_skin_selected)
+                    ApplySkin(skin_index);
             }
         }
 
@@ -2667,7 +2693,24 @@ void CTrafficMonitorDlg::OnChangeSkin()
     skinDlg.m_skin_selected = m_skin_selected;
     if (skinDlg.DoModal() == IDOK)
     {
-        ApplySkin(skinDlg.m_skin_selected);
+        int skin_index = skinDlg.m_skin_selected;
+        if (theApp.m_cfg_data.skin_auto_adapt)
+        {
+            //在皮肤列表中手动选择其他皮肤时，将其保存为当前深浅色模式使用的皮肤
+            if (skin_index != m_skin_selected)
+            {
+                std::wstring selected_skin_name = CSkinManager::Instance().GetSkinName(skin_index);
+                if (CWindowsSettingHelper::IsWindows10LightTheme())
+                    theApp.m_cfg_data.skin_name_light_mode = selected_skin_name;
+                else
+                    theApp.m_cfg_data.skin_name_dark_mode = selected_skin_name;
+            }
+
+            int auto_adapt_skin_index = GetAutoAdaptSkinIndex();
+            if (auto_adapt_skin_index >= 0)
+                skin_index = auto_adapt_skin_index;
+        }
+        ApplySkin(skin_index);
     }
 }
 

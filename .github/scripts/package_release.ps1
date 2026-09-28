@@ -1,7 +1,7 @@
 ﻿# 打包发布用的压缩包
 #
 # 用法:
-#   pwsh -File .github/scripts/package_release.ps1 -Version 1.86.1
+#   pwsh -File .github/scripts/package_release.ps1 -Version 1.86.2
 #
 # 前置条件: 已编译完整版与 Lite 版（x64 Release），即存在
 #   Bin\x64\Release\TrafficMonitor.exe

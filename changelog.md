@@ -1,6 +1,39 @@
 # 更新日志
 
-本文件按版本号记录 TrafficMonitorPlus 的改动，比 README 更细。推送 `V*` 标签时，GitHub Actions 会自动提取对应版本的章节作为 Release note，因此**章节标题请保持 `## V<版本号>` 的格式**（例如 `## V1.86.1`），版本号要与标签去掉前缀后一致。
+本文件按版本号记录 TrafficMonitorPlus 的改动，比 README 更细。推送 `V*` 标签时，GitHub Actions 会自动提取对应版本的章节作为 Release note，因此**章节标题请保持 `## V<版本号>` 的格式**（例如 `## V1.86.2`），版本号要与标签去掉前缀后一致。
+
+---
+
+## V1.86.2
+
+发布日期：2026-09-28
+
+### 新增
+
+- **新增皮肤跟随 Windows 深浅色主题自动切换功能。**
+  - 在“更换皮肤”对话框中可以分别配置深色模式和浅色模式使用的皮肤。
+  - 程序启动时会直接应用当前 Windows 系统模式对应的皮肤，不再等待下一次主题变化。
+  - 修改自动切换设置并确认后立即应用当前模式对应的皮肤。
+  - 在启用自动切换时，从皮肤列表手动选择另一套皮肤会更新当前模式对应的映射。
+  - 当映射缺失、皮肤不存在或主题条件不满足时，安全回退到当前皮肤，不会误切到列表中的第一套皮肤。
+  - 修复读取 Windows 主题注册表失败时可能关闭无效注册表句柄的问题。
+
+### 文档
+
+- 重写 `皮肤制作教程.md`，结合当前源码补充 PNG/BMP、`skin.xml`、`skin.ini`、布局、插件映射、高 DPI、遮罩和深浅色双皮肤制作方法。
+- 新增根目录 `development.md`，用于新会话快速接手项目。
+- 新增根目录 `changelog.md`，作为每次版本的更新记录和 GitHub Release note 来源。
+- Release workflow 改为从根目录 `changelog.md` 提取对应版本说明。
+
+### 变更
+
+- 版本号由 **1.86.1** 提升到 **1.86.2**。
+- README 更新当前版本、V1.86.2 功能说明和文档入口。
+
+### 验证
+
+- Visual Studio 2022 x64 Release 完整版编译通过，0 个错误。
+- 皮肤教程中的文件名、XML/INI 节点和自动切换配置已与当前源码核对。
 
 ---
 
@@ -24,7 +57,7 @@
 
 - 版本号由 1.86 提升到 **1.86.1**（`TrafficMonitor/stdafx.h` 的 `VERSION`、`TrafficMonitor/TrafficMonitor.rc` 的版本资源、`version.info` 与 `version_utf8.info`）。
 - 重写本仓库 README：不再沿用原作者的 README，只保留指向上游文档的链接并记录本仓库的修改。
-- 新增 [wiggins-kong/changelog.md](changelog.md)（本文件）与 [wiggins-kong/development.md](development.md)（开发进度 / 交接文档）。
+- 新增 [changelog.md](changelog.md)（本文件）与 [development.md](development.md)（开发进度 / 交接文档）。
 - 新增 GitHub Actions 工作流 `.github/workflows/release.yml`：推送 `v*` / `V*` 标签时自动创建 Release（Release note 取自本文件对应版本的章节），并编译 x64 完整版与 Lite 版压缩包作为附件。
 - 新增诊断工具源码 `wiggins-kong/tools/lhm_probe/`：直接调用硬件监控桥接层，在没有界面的情况下确认各硬件的启用状态、错误信息和读数，便于排查同类问题。
 

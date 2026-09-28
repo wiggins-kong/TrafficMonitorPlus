@@ -3,7 +3,7 @@ rem ============================================================================
 rem  Build lhm_probe - a diagnostic tool for the TrafficMonitor hardware monitor
 rem
 rem  This tool calls OpenHardwareMonitorApi.dll directly, so hardware monitor
-rem  problems can be checked without the GUI. See wiggins-kong/development.md.
+rem  problems can be checked without the GUI. See development.md.
 rem
 rem  Requirements:
 rem    1. Build the full (non-Lite) solution first, so that
@@ -14,7 +14,7 @@ rem
 rem  Copy the produced tm_lhm_probe.exe into the TrafficMonitor program folder
 rem  (next to OpenHardwareMonitorApi.dll and LibreHardwareMonitorLib.dll) and run
 rem  it as administrator. The result is written to tm_lhm_probe_out.txt.
-rem  (Chinese documentation: wiggins-kong/development.md)
+rem  (Chinese documentation: development.md)
 rem ============================================================================
 setlocal
 

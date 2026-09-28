@@ -7,15 +7,40 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 - 原作者（zhongyang219）：[README](https://github.com/zhongyang219/TrafficMonitor/blob/master/README.md)｜[使用说明 Help.md](https://github.com/zhongyang219/TrafficMonitor/blob/master/Help.md)
 - 本仓库直接 fork 的上游（mackid1993）：[README](https://github.com/mackid1993/TrafficMonitor/blob/master/README.md)
 
-本 README 只记录 TrafficMonitorPlus 相对上游做了什么；按版本号排列的详细更新日志见 [wiggins-kong/changelog.md](wiggins-kong/changelog.md)，开发与构建说明见 [wiggins-kong/development.md](wiggins-kong/development.md)。
+本 README 只记录 TrafficMonitorPlus 相对上游做了什么；按版本号排列的详细更新日志见 [changelog.md](changelog.md)，开发与构建说明见 [development.md](development.md)，皮肤制作说明见 [皮肤制作教程.md](皮肤制作教程.md)。
 
 ## 当前版本
 
-**V1.86.1** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
+**V1.86.2** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
+
+## V1.86.2 新增内容
+
+### 皮肤跟随 Windows 深浅色主题自动切换
+
+- 可以在“更换皮肤”对话框中分别指定 Windows 深色模式和浅色模式使用的皮肤。
+- 程序启动时会直接应用当前系统模式对应的皮肤。
+- Windows 系统模式变化后自动切换，修改映射并确认后立即应用。
+- 映射缺失或皮肤被删除时安全回退到当前皮肤，不会误切到列表中的第一套皮肤。
+
+### 完整皮肤制作教程
+
+[皮肤制作教程.md](皮肤制作教程.md) 已按当前源码重写，包含：
+
+- `skin.xml` 的完整字段和示例；
+- PNG/BMP 背景、透明和不规则窗口遮罩；
+- 内置项目、插件映射、布局和对齐方式；
+- 高 DPI、文本颜色换算、打包和常见问题；
+- 制作浅色与深色两套皮肤并配置自动切换的方法。
 
 ## 本仓库相对上游的修改
 
-### 1. 硬件监控不再因第三方库异常而崩溃（V1.86.1 修复）
+### 1. 皮肤支持 Windows 深浅色自动切换（V1.86.2 新增）
+
+程序会读取 Windows 的“系统模式”。自动切换启用后，启动时会应用当前模式对应的皮肤，系统主题变化时自动切换；用户在皮肤设置中修改映射并确认后也会立即生效。
+
+该功能支持两套完整皮肤分别配置，不会仅根据文件夹名称推断深浅色。推荐分别制作 `MySkin-Light` 和 `MySkin-Dark` 两个皮肤目录，然后在“更换皮肤 → 自动切换设置”中选择。
+
+### 2. 硬件监控不再因第三方库异常而崩溃（V1.86.1 修复）
 
 硬件监控功能由第三方库 LibreHardwareMonitor 实现。启用某一项硬件监控（CPU / 显卡 / 硬盘 / 主板）时，该库会立即枚举并初始化对应的硬件分组；一旦这一步出错（例如程序目录里缺少该库需要的依赖 DLL），异常会穿过 C++/CLI 桥接层和 MFC 代码，直接终止进程——表现就是"勾选硬盘并应用后程序崩溃"。
 
@@ -25,9 +50,9 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 - 应用层：再用 SEH（`__try/__except`）包一层，捕获 `catch` 无法处理的访问冲突等异常；启用失败时弹出一次错误提示（含第三方库给出的原始错误信息），并把该项设置自动改回禁用，避免反复失败。
 - 取数路径（`GetHardwareInfo`）上游本来就有两层保护，保持不变。
 
-完整的根因分析、依赖清单和实测记录见 [wiggins-kong/development.md](wiggins-kong/development.md)。
+完整的根因分析、依赖清单和实测记录见 [development.md](development.md)。
 
-### 2. 上游特性的保留说明
+### 3. 上游特性的保留说明
 
 "在系统托盘中预留空间，防止任务栏图标与窗口重叠"（选项 → 任务栏窗口设置 → Windows 11 相关设置）来自 mackid1993 的 `feature/reserve-taskbar-space` 分支，本仓库沿用该功能，并在其基础上做修复与发版。
 
@@ -40,7 +65,7 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 ## 下载
 
-见 [Releases](https://github.com/wiggins-kong/TrafficMonitorPlus/releases)。推送 `V*` 标签后，GitHub Actions 会自动编译 x64 完整版与 Lite 版并发布。
+见 [Releases](https://github.com/wiggins-kong/TrafficMonitorPlus/releases)。V1.86.2 提供 x64 完整版与 Lite 版；推送 `V*` 标签后，GitHub Actions 会自动编译并上传发行包。
 
 ## 许可证与致谢
 

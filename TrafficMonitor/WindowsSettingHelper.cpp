@@ -12,18 +12,21 @@ void CWindowsSettingHelper::CheckWindows10LightTheme()
 {
     if (theApp.m_win_version.IsWindows10OrLater())
     {
-        HKEY hKey;
-        DWORD dwThemeData(0);
+        HKEY hKey{};
         LONG lRes = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", 0, KEY_READ, &hKey);
-        if (lRes == ERROR_SUCCESS) {
-            GetDWORDRegKeyData(hKey, L"SystemUsesLightTheme", dwThemeData);
-            m_light_theme = (dwThemeData != 0);
+        if (lRes == ERROR_SUCCESS)
+        {
+            DWORD dwThemeData{};
+            if (GetDWORDRegKeyData(hKey, L"SystemUsesLightTheme", dwThemeData) == ERROR_SUCCESS)
+                m_light_theme = (dwThemeData != 0);
+            else
+                m_light_theme = false;
+            RegCloseKey(hKey);
         }
         else
         {
             m_light_theme = false;
         }
-        RegCloseKey(hKey);
     }
     else
     {

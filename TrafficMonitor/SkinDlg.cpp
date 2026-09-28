@@ -205,6 +205,14 @@ void CSkinDlg::OnBnClickedSkinAutoAdaptButton()
 void CSkinDlg::OnOK()
 {
     theApp.m_cfg_data.skin_auto_adapt = (IsDlgButtonChecked(IDC_SKIN_AUTO_ADAPT_CHECK) != FALSE);
+    if (theApp.m_cfg_data.skin_auto_adapt)
+    {
+        std::wstring current_skin_name = CSkinManager::Instance().GetSkinName(m_skin_selected);
+        if (theApp.m_cfg_data.skin_name_light_mode.empty())
+            theApp.m_cfg_data.skin_name_light_mode = current_skin_name;
+        if (theApp.m_cfg_data.skin_name_dark_mode.empty())
+            theApp.m_cfg_data.skin_name_dark_mode = current_skin_name;
+    }
 
     CBaseDialog::OnOK();
 }

@@ -113,6 +113,8 @@ void CTrafficMonitorApp::LoadConfig()
     m_cfg_data.skin_auto_adapt = ini.GetBool(L"skins", L"skin_auto_adapt", false);
     m_cfg_data.skin_name_dark_mode = ini.GetString(L"skins", L"skin_name_dark_mode", L"");
     m_cfg_data.skin_name_light_mode = ini.GetString(L"skins", L"skin_name_light_mode", L"");
+    CSkinManager::SkinNameNormalize(m_cfg_data.skin_name_dark_mode);
+    CSkinManager::SkinNameNormalize(m_cfg_data.skin_name_light_mode);
 
     m_cfg_data.m_notify_icon_selected = ini.GetInt(_T("config"), _T("notify_icon_selected"), (m_win_version.IsWindows7() || m_win_version.IsWindows8Or8point1() ? 2 : m_cfg_data.m_dft_notify_icon));       //Win7/8/8.1默认使用蓝色通知区图标，因为隐藏通知区图标后白色图标会看不清，其他系统默认使用白色图标
     m_cfg_data.m_notify_icon_auto_adapt = ini.GetBool(_T("config"), _T("notify_icon_auto_adapt"), true);
