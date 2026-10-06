@@ -1,7 +1,7 @@
 # TrafficMonitorPlus 开发文档
 
 > 目的：让任何一台电脑上的开发者 / agent 能无缝接手本项目。
-> 最后更新：2026-09-28（对应版本 V1.86.2，分支 `master`）
+> 最后更新：2026-10-07（对应版本 V1.86.3，分支 `master`）
 
 ---
 
@@ -18,13 +18,14 @@
 
 ### 当前状态
 
-- 当前版本：**V1.86.2**。
+- 当前版本：**V1.86.3**。
 - `master` 是唯一发布线，标签格式为 `V<major>.<minor>.<patch>`。
 - 文档入口：
   - `README.md`：面向用户和下载者。
   - `changelog.md`：版本更新记录，也是 GitHub Release note 的来源。
   - `development.md`：本文件，记录架构、构建、验证和发版流程。
   - `皮肤制作教程.md`：面向皮肤作者的完整教程。
+- V1.86.3 修复切换系统深浅色主题时任务栏假死的问题（换图标改 `NIM_MODIFY`、主题切换期间托盘预留静默，见 8.4 节）。
 - V1.86.2 新增皮肤跟随 Windows 深浅色自动切换，并补齐了完整皮肤制作教程。
 - V1.86.1 的硬件监控崩溃修复仍然保留，回归测试时不要破坏相关异常保护。
 
@@ -48,7 +49,7 @@ git remote add upstream https://github.com/mackid1993/TrafficMonitor
 ```
 
 - `master` = 上游 master + mackid1993 的 `feature/reserve-taskbar-space` + 本仓库的修改（**发布线**）。
-  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → V1.86.1 → V1.86.2`。
+  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → V1.86.1 → V1.86.2 → V1.86.3`。
 - 工作分支命名参考：`feat/skin-theme-auto-switch`。
 - 发布：在 `master` 上打 `V<版本>` 标签并推送，工作流会自动编译并发布 Release（见第 7 节）。
 
@@ -60,15 +61,15 @@ git remote add upstream https://github.com/mackid1993/TrafficMonitor
 
 | 文件 | 需要修改的内容 | 作用 |
 | --- | --- | --- |
-| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.2"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
-| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,2,0`、`PRODUCTVERSION 1,86,2,0`、`VALUE "FileVersion", "1.86.2.0"`、`VALUE "ProductVersion", "1.86.2.0"` | 可执行文件属性里的版本 |
-| `version.info` | `<version>1.86.2</version>` | 更新信息文件元数据（Gitee 用） |
-| `version_utf8.info` | `<version>1.86.2</version>` | 更新信息文件元数据（GitHub 用） |
+| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.3"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
+| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,3,0`、`PRODUCTVERSION 1,86,3,0`、`VALUE "FileVersion", "1.86.3.0"`、`VALUE "ProductVersion", "1.86.3.0"` | 可执行文件属性里的版本 |
+| `version.info` | `<version>1.86.3</version>` | 更新信息文件元数据（Gitee 用） |
+| `version_utf8.info` | `<version>1.86.3</version>` | 更新信息文件元数据（GitHub 用） |
 
 注意事项：
 
 - `TrafficMonitor.rc` 是 **UTF-16LE** 编码，请用支持 UTF-16 的编辑器修改；命令行里 grep 要加 `-a`。
-- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的四段形式，例如 V1.86.2 对应 `1,86,2,0`，**不要改回 `1,8,6,2`**。
+- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的四段形式，例如 V1.86.3 对应 `1,86,3,0`，**不要改回 `1,8,6,3`**。
 - 程序运行时**不读**本地的 `version.info` / `version_utf8.info`；它们只是随包提供的元数据。程序内置的更新检查请求的是上游仓库的 URL（见 `TrafficMonitor/UpdateHelper.cpp`，仍然是 `zhongyang219`），如果要改成 TrafficMonitorPlus 自己的更新通道，需要同时改这里和上面的下载链接（见第 8 节待办）。
 
 ---
@@ -253,15 +254,15 @@ SetHddEnable(true)       -> false
 ```
 git switch master && git pull
 # 1) 更新第 2 节的 4 个版本号位置
-# 2) 在根目录 changelog.md 顶部新增一节：## V1.86.2
-git commit -am "chore: 版本号更新到 V1.86.2"
+# 2) 在根目录 changelog.md 顶部新增一节：## V1.86.3
+git commit -am "chore: 版本号更新到 V1.86.3"
 git push origin master
-git tag V1.86.2 && git push origin V1.86.2
+git tag V1.86.3 && git push origin V1.86.3
 ```
 
 工作流 `.github/workflows/release.yml` 会在标签推送后：
 
-1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从根目录 `changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.2`）。
+1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从根目录 `changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.3`）。
 2. **build-and-upload**（windows-2022）：检查并按需补装 MFC/ATL、C++/CLI、.NET 4.7.2 目标包 → 编译完整版与 Lite 版（x64）→ 用 `.github/scripts/package_release.ps1` 打包 → `gh release upload` 上传两个 zip。
 
 说明与注意事项：
@@ -271,7 +272,7 @@ git tag V1.86.2 && git push origin V1.86.2
 - 构建前必须让 MSBuild 在 PATH 中（工作流用 `microsoft/setup-msbuild@v2`）；否则报 `'msbuild' is not recognized`。
 - 打包脚本按 ZIP 规范写入正斜杠条目名，并且用 `Get-ChildItem -Name` 取相对路径（用 `Substring` 算相对路径在 runner 上会因为路径形态差异产生诸如 `64/` 的错误前缀）。
 - 也支持手动触发（Actions → Release → Run workflow，填写标签名）；Release 已存在时会用 `gh release edit` 更新说明，附件用 `--clobber` 覆盖，因此可以安全重跑。
-- 标签前缀 `v` / `V` 都可以；`changelog.md` 中的章节标题必须能被版本号匹配到（`## V1.86.2`）。
+- 标签前缀 `v` / `V` 都可以；`changelog.md` 中的章节标题必须能被版本号匹配到（`## V1.86.3`）。
 - 附件命名：`TrafficMonitorPlus_V<版本>_x64.zip`（完整版）、`TrafficMonitorPlus_V<版本>_x64_Lite.zip`（Lite 版）。
 - 目前只构建 x64；如需 x86 / ARM64EC，参照上游 `.github/workflows/main.yml` 增加 msbuild 调用与打包即可（Lite 解决方案已支持 `--p:Platform=x86` / `ARM64EC`）。
 
@@ -325,6 +326,13 @@ LICENSE_CN
 - 删除其中一套皮肤后，程序回退到当前皮肤且不崩溃。
 - 两套映射选择同一皮肤时，主题变化不应触发不必要的重新加载。
 - 旧配置中的皮肤名称带前导斜杠时，应通过 `SkinNameNormalize()` 正常匹配。
+
+### 8.4 深浅色切换与托盘预留的协作约定（V1.86.3）
+
+切换系统深浅色时资源管理器正在重绘重排任务栏，此时程序发出的任何同步调用（`Shell_NotifyIcon`、`NotifyIconSettings` 注册表扫键、UIA 查询）都会和任务栏线程互相拖慢，最坏情况两边互相卡死、任务栏整体假死甚至重启 explorer。因此约定：
+
+- 通知区图标换色一律用 `Shell_NotifyIcon(NIM_MODIFY)` 就地更新，**绝不**走"删除+添加"——`CTrafficMonitorDlg::AddNotifyIcon()` / `DeleteNotifyIcon()` 在增删图标前后会关闭并重开任务栏窗口，导致托盘预留的占位图标整批销毁重建（V1.86.3 修复的根因）。
+- `CTaskbarTrayReserve::NoteShellBusy()`（`TaskbarButtonSpacer.h`）在主题切换广播（`WM_SETTINGCHANGE(ImmersiveColorSet)`、`WM_DWMCOLORIZATIONCOLORCHANGED`、`WM_THEMECHANGED`）时静默 3 秒：期间 `SetReservedWidth()` 不做任何外壳/注册表调用，后台 UIA 查询线程也暂停；静默结束后自动恢复维护并补齐缺失的占位图标。
 
 ---
 

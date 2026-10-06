@@ -4,7 +4,7 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 ## 当前版本
 
-**V1.86.2** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
+**V1.86.3** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
 
 本 README 只做项目总览，不按版本记录细节。完整版本历史和 Release note 见 [changelog.md](changelog.md)。
 
@@ -26,6 +26,10 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 保留 mackid1993 `feature/reserve-taskbar-space` 分支的系统托盘空间预留功能，用于避免任务栏图标与 TrafficMonitorPlus 窗口重叠。
 
+### 深浅色主题切换稳定
+
+切换 Windows 深浅色主题时，通知区图标改为原地更新，任务栏窗口与托盘空间预留不再被反复销毁重建，任务栏不会假死；通知区图标黑白配色依旧自动跟随主题。
+
 ## 文档
 
 - 使用说明：[上游 Help.md](https://github.com/zhongyang219/TrafficMonitor/blob/master/Help.md)
@@ -37,8 +41,8 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 见 [Releases](https://github.com/wiggins-kong/TrafficMonitorPlus/releases)。当前发行版提供：
 
-- `TrafficMonitorPlus_V1.86.2_x64.zip`：完整版，包含硬件监控；
-- `TrafficMonitorPlus_V1.86.2_x64_Lite.zip`：Lite 版，不含硬件监控相关 DLL。
+- `TrafficMonitorPlus_V1.86.3_x64.zip`：完整版，包含硬件监控；
+- `TrafficMonitorPlus_V1.86.3_x64_Lite.zip`：Lite 版，不含硬件监控相关 DLL。
 
 ## 使用硬件监控时的注意事项
 
