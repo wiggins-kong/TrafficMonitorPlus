@@ -6,6 +6,12 @@
 #include <algorithm>
 
 CTaskbarTrayReserve* CTaskbarTrayReserve::m_instance{};
+std::atomic<ULONGLONG> CTaskbarTrayReserve::s_shell_busy_until{};
+
+void CTaskbarTrayReserve::NoteShellBusy()
+{
+    s_shell_busy_until = GetTickCount64() + SHELL_BUSY_MS;
+}
 
 //占位图标宿主窗口的窗口类名 / window class of the hidden icon-owner window
 static const wchar_t* TRAY_RESERVE_WINDOW_CLASS = L"TrafficMonitorTrayReserve";
@@ -40,6 +46,15 @@ LRESULT CALLBACK CTaskbarTrayReserve::OwnerWndProc(HWND hwnd, UINT msg, WPARAM w
     //never call into the shell from inside the handling of its own broadcast.
     if (msg == g_taskbar_created_msg && g_taskbar_created_msg != 0 && m_instance != nullptr)
         m_instance->m_shell_restarted = true;
+    //主题切换的广播：静默几秒，期间不向外壳发任何同步调用
+    //Theme-change broadcasts: go quiet for a few seconds and make no synchronous calls into
+    //the shell meanwhile
+    if ((msg == WM_SETTINGCHANGE && lparam != 0
+            && wcscmp(reinterpret_cast<LPCWSTR>(lparam), L"ImmersiveColorSet") == 0)
+        || msg == WM_DWMCOLORIZATIONCOLORCHANGED || msg == WM_THEMECHANGED)
+    {
+        NoteShellBusy();
+    }
     return DefWindowProcW(hwnd, msg, wparam, lparam);
 }
 
@@ -521,6 +536,16 @@ int CTaskbarTrayReserve::GetSlotWidth() const
 
 void CTaskbarTrayReserve::SetReservedWidth(int width)
 {
+    //外壳正在切换主题：这次心跳什么都不做，静默期结束后的下一次心跳会照常维护，
+    //缺掉的图标届时补回来即可。现在往里发Shell_NotifyIcon或扫注册表，
+    //每一个同步调用都可能卡上几秒，几十个摞起来足以把整个任务栏拖死。
+    //The shell is re-theming: skip this tick. The next tick after the quiet period runs the
+    //normal maintenance and re-adds whatever is missing. Sending Shell_NotifyIcon or sweeping
+    //the registry right now costs seconds per synchronous call, and dozens of them are enough
+    //to bring the whole taskbar down.
+    if (GetTickCount64() < s_shell_busy_until)
+        return;
+
     if (m_shell_restarted.exchange(false))
     {
         //资源管理器重启了。外壳里的占位图标已经全没了，这里把本地的记录一并清空，
@@ -803,6 +828,24 @@ void CTaskbarTrayReserve::QueryThreadProc()
         int query_interval{ QUERY_INTERVAL_FAST };
         while (!m_thread_exit)
         {
+            //外壳正在切换主题：UIA查询要资源管理器的任务栏线程来伺候，而它正忙着换主题，
+            //此时查询只会互相拖慢。睡到静默期结束再继续。
+            //The shell is re-theming: every UIA query has to be serviced by Explorer's taskbar
+            //thread, which is busy doing exactly that. Sleep through the quiet period instead.
+            {
+                const ULONGLONG busy_until = s_shell_busy_until;
+                const ULONGLONG now = GetTickCount64();
+                if (now < busy_until)
+                {
+                    const DWORD remain = static_cast<DWORD>(busy_until - now);
+                    if (m_wake_event != nullptr)
+                        WaitForSingleObject(m_wake_event, remain);
+                    else
+                        Sleep(remain);
+                    continue;
+                }
+            }
+
             const ULONGLONG query_start = GetTickCount64();
             const int expected = m_icon_count;
 

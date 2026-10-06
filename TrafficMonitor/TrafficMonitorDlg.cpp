@@ -1897,6 +1897,11 @@ void CTrafficMonitorDlg::OnTimer(UINT_PTR nIDEvent)
         if (theApp.m_last_light_mode != light_mode)
         {
             theApp.m_last_light_mode = light_mode;
+            //兜底：即使漏收了主题切换的广播，也在这里让托盘预留静默几秒，
+            //不要在资源管理器换主题的同时向它发同步调用
+            //Backstop: if the theme-change broadcast was missed, put the tray reservation to
+            //sleep here as well - no synchronous calls into Explorer while it re-themes.
+            CTaskbarTrayReserve::NoteShellBusy();
             bool restart_taskbar_dlg{ false };
             if (theApp.m_taskbar_data.auto_adapt_light_theme)
             {
@@ -1960,8 +1965,16 @@ void CTrafficMonitorDlg::OnTimer(UINT_PTR nIDEvent)
                     m_ntIcon.hIcon = theApp.m_notify_icons[theApp.m_cfg_data.m_notify_icon_selected];
                     if (theApp.m_general_data.show_notify_icon)
                     {
-                        DeleteNotifyIcon();
-                        AddNotifyIcon();
+                        //只换图标用NIM_MODIFY即可，绝不能先删后加：DeleteNotifyIcon/AddNotifyIcon
+                        //会连带关闭并重开任务栏窗口，进而销毁并重建托盘预留的全部占位图标，
+                        //而这一刻资源管理器正在切换主题，几十次同步的Shell_NotifyIcon能把
+                        //界面线程和任务栏线程互相卡死（任务栏假死、甚至重启explorer）。
+                        //A plain NIM_MODIFY is all an icon swap needs. Never delete-then-add:
+                        //DeleteNotifyIcon/AddNotifyIcon also close and reopen the taskbar window,
+                        //which tears down and rebuilds every tray-reservation placeholder - right
+                        //while Explorer is busy re-theming, and the dozens of synchronous
+                        //Shell_NotifyIcon calls deadlock the UI thread against the taskbar thread.
+                        ::Shell_NotifyIcon(NIM_MODIFY, &m_ntIcon);
                     }
                 }
             }
@@ -2813,8 +2826,10 @@ void CTrafficMonitorDlg::OnChangeNotifyIcon()
             theApp.AutoSelectNotifyIcon();
         if (theApp.m_general_data.show_notify_icon)
         {
-            DeleteNotifyIcon();
-            AddNotifyIcon();
+            //同上：换图标用NIM_MODIFY，不要走删除+添加（会关闭并重开任务栏窗口）
+            //As above: NIM_MODIFY for an icon swap; delete+add would close and reopen the
+            //taskbar window for nothing.
+            ::Shell_NotifyIcon(NIM_MODIFY, &m_ntIcon);
         }
         theApp.SaveConfig();
     }

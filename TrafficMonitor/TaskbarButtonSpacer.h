@@ -86,6 +86,17 @@ public:
     //correct when the user actively switches the feature off and clearly does not want them.
     void Destroy(bool purge_keys = false);
 
+    //告知外壳正在切换深浅色主题（或重建任务栏）。接下来的几秒内本类不做任何对外壳的
+    //调用（Shell_NotifyIcon、注册表扫键、UIA查询）：主题切换时资源管理器正在重绘重排，
+    //此时同步调用进去会让界面线程和任务栏线程互相卡住，任务栏整体假死甚至重启explorer。
+    //静默期结束后自动恢复维护，缺的图标会照常补回来。
+    //Tell it the shell is switching theme (or rebuilding the taskbar). For the next few seconds
+    //this class makes no calls into the shell at all (Shell_NotifyIcon, registry sweeps, UIA
+    //queries): Explorer is busy re-theming, and synchronous calls into it deadlock the UI thread
+    //against the taskbar thread - the whole taskbar freezes and Explorer may even restart.
+    //Maintenance resumes by itself afterwards and any missing icons are re-added as usual.
+    static void NoteShellBusy();
+
     //删除本程序在注册表里留下的所有占位图标项。只有在用户明确关闭该功能时才调用：
     //平时退出绝不能删，删了下次就再也建不回来（见Destroy中的说明）。
     //做成静态的，是因为程序启动时开关本来就是关着的情况下根本没有添加过图标，
@@ -254,6 +265,16 @@ private:
     HWINEVENTHOOK m_win_event_hook{};
     HWND m_hooked_taskbar{};                    //钩子所挂的任务栏窗口 / the taskbar the hook watches
     static CTaskbarTrayReserve* m_instance;     //供WinEvent回调使用 / for the WinEvent callback
+
+    //外壳忙碌（切换主题等）的截止时刻，在此之前不碰外壳。由NoteShellBusy设置，
+    //界面线程和后台查询线程都会读它，故用原子变量。
+    //Deadline of the shell being busy (theme switch, ...); no shell calls happen before it.
+    //Set by NoteShellBusy and read by both the UI thread and the query thread, hence atomic.
+    static std::atomic<ULONGLONG> s_shell_busy_until;
+    //静默时长。要盖过一次主题切换的完整过程，又不能太长影响正常使用
+    //How long to stay quiet. Long enough to cover a whole theme transition, short enough not
+    //to get in the way of normal use.
+    static constexpr ULONGLONG SHELL_BUSY_MS = 3000;
 
     //当前显示器的DPI，由调用方设置 / current monitor's DPI, supplied by the caller
     UINT m_dpi{ 96 };
