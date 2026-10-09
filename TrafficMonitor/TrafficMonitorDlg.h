@@ -148,6 +148,7 @@ protected:
     POINT CalculateWindowMoveOffset(CRect rect, bool screen_changed);  //计算当窗口处于屏幕区域外时，移动到屏幕区域需要移动的位置
     void CheckWindowPos(bool screen_changed = false);          //测试窗口的位置，如窗口的位置在屏幕外，则移动窗口使其全部都在屏幕内，并返回新位置
     void GetScreenSize();           //获取屏幕的大小
+    void CheckShowDesktop();        //“显示桌面”时使悬浮窗保持可见
 
     void AutoSelect();
     //void UpdateConnections();
@@ -225,6 +226,7 @@ public:
     afx_msg void OnTransparency60();
     afx_msg void OnTransparency40();
     afx_msg void OnClose();
+    afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
     virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
     afx_msg void OnInitMenu(CMenu* pMenu);
     virtual BOOL PreTranslateMessage(MSG* pMsg);

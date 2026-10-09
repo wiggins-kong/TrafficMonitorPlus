@@ -92,6 +92,7 @@ BEGIN_MESSAGE_MAP(CTrafficMonitorDlg, CDialog)
     ON_COMMAND(ID_TRANSPARENCY_60, &CTrafficMonitorDlg::OnTransparency60)
     ON_COMMAND(ID_TRANSPARENCY_40, &CTrafficMonitorDlg::OnTransparency40)
     ON_WM_CLOSE()
+    ON_WM_SYSCOMMAND()
     ON_WM_INITMENU()
     ON_COMMAND(ID_LOCK_WINDOW_POS, &CTrafficMonitorDlg::OnLockWindowPos)
     ON_WM_MOVE()
@@ -348,6 +349,44 @@ void CTrafficMonitorDlg::CheckWindowPos(bool screen_changed)
         CRect rect;
         GetWindowRect(rect);
         MoveWindow(rect + CalculateWindowMoveOffset(rect, screen_changed));
+    }
+}
+
+//判断一个窗口是不是桌面窗口：桌面窗口（Progman），或桌面图标的宿主窗口（SHELLDLL_DefView的父窗口）
+//注意：不能简单按窗口类名（WorkerW）判断，因为系统中还存在其他用途的WorkerW窗口，
+//它们在某些操作（如右键桌面菜单）时会短暂地位于悬浮窗上方，会造成悬浮窗闪烁。
+static bool IsDesktopWindow(HWND hwnd)
+{
+    if (hwnd == nullptr)
+        return false;
+
+    if (hwnd == ::GetShellWindow())
+        return true;
+
+    return ::FindWindowEx(hwnd, nullptr, _T("SHELLDLL_DefView"), nullptr) != nullptr;
+}
+
+//点击“显示桌面”时，桌面窗口会被抬升到悬浮窗之上（悬浮窗并没有被隐藏），从而导致悬浮窗被遮住。
+//此函数检测到这种情况后，把悬浮窗重新移到桌面窗口的上面，使悬浮窗在显示桌面时保持可见。
+void CTrafficMonitorDlg::CheckShowDesktop()
+{
+    HWND desktop_wnd = nullptr;
+    for (HWND h = ::GetWindow(m_hWnd, GW_HWNDPREV); h != nullptr; h = ::GetWindow(h, GW_HWNDPREV))
+    {
+        //置顶窗口始终位于桌面窗口上方，查找可以到此为止
+        if ((::GetWindowLongPtr(h, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0)
+            break;
+        if (::IsWindowVisible(h) && IsDesktopWindow(h))
+        {
+            desktop_wnd = h;
+            break;
+        }
+    }
+
+    if (desktop_wnd != nullptr)
+    {
+        //将悬浮窗移到所有非置顶窗口之上：位于被抬升的桌面窗口之上，同时仍然位于置顶窗口的下方
+        SetWindowPos(&wndNoTopMost, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 }
 
@@ -1202,6 +1241,9 @@ BOOL CTrafficMonitorDlg::OnInitDialog()
     //设置1000毫秒触发的定时器
     SetTimer(MAIN_TIMER, 1000, NULL);
 
+    //设置检测“显示桌面”的定时器，使用较短的间隔以便及时把悬浮窗移到桌面窗口上面
+    SetTimer(SHOW_DESKTOP_TIMER, 100, NULL);
+
     SetTimer(MONITOR_TIMER, theApp.m_general_data.monitor_time_span, NULL);
     AfxBeginThread(MonitorThreadCallback, (LPVOID)this);
 
@@ -1671,6 +1713,17 @@ void CTrafficMonitorDlg::ExitMonitorThread()
 void CTrafficMonitorDlg::OnTimer(UINT_PTR nIDEvent)
 {
     // TODO: 在此添加消息处理程序代码和/或调用默认值
+    if (nIDEvent == SHOW_DESKTOP_TIMER)
+    {
+        //悬浮窗没有任务栏按钮，被最小化后将无法手动还原，因此检测到窗口被最小化时自动还原
+        if (!theApp.m_cfg_data.m_hide_main_window && ::IsIconic(m_hWnd))
+            ShowWindow(SW_SHOWNOACTIVATE);
+
+        //点击“显示桌面”时桌面窗口会被抬升到悬浮窗之上，此时把悬浮窗移到桌面窗口上面，使其保持可见
+        //使用较短的定时器是为了及时响应，避免悬浮窗在显示桌面时先被遮住再弹出来（闪烁）
+        if (!theApp.m_main_wnd_data.m_always_on_top && !theApp.m_cfg_data.m_hide_main_window && ::IsWindowVisible(m_hWnd))
+            CheckShowDesktop();
+    }
     if (nIDEvent == MONITOR_TIMER)
     {
         //通知线程获取监控数据
@@ -2267,6 +2320,17 @@ void CTrafficMonitorDlg::OnClose()
     }
 
     CDialog::OnClose();
+}
+
+
+void CTrafficMonitorDlg::OnSysCommand(UINT nID, LPARAM lParam)
+{
+    //悬浮窗没有任务栏按钮，被最小化后将无法还原，因此忽略最小化命令
+    //（点击“显示桌面”或按Win+M/Win+D最小化所有窗口时系统会发送此命令）
+    if ((nID & 0xFFF0) == SC_MINIMIZE)
+        return;
+
+    CDialog::OnSysCommand(nID, lParam);
 }
 
 
