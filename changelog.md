@@ -4,6 +4,33 @@
 
 ---
 
+## V1.86.4
+
+发布日期：2026-10-09
+
+### 修复
+
+- **修复“显示桌面”（任务栏右下角、Win+D）或按 Win+M 后悬浮窗被遮住 / 被最小化的问题。**
+  - 新增 100 ms 定时器（`SHOW_DESKTOP_TIMER`）与 `CTrafficMonitorDlg::CheckShowDesktop()`：显示桌面时桌面窗口会被系统抬升到悬浮窗之上，检测到后用 `SetWindowPos` 把悬浮窗移回所有非置顶窗口之上。只识别真正的桌面窗口（`GetShellWindow()` 与宿主 `SHELLDLL_DefView` 的窗口），不会把右键桌面菜单等短暂出现的其他 `WorkerW` 窗口误判为桌面而导致悬浮窗闪烁。
+  - `CTrafficMonitorDlg::OnSysCommand()` 忽略 `SC_MINIMIZE`：悬浮窗没有任务栏按钮，被最小化后无法手动还原。
+  - 窗口仍被最小化时（`IsIconic`）自动用 `ShowWindow(SW_SHOWNOACTIVATE)` 还原。
+  - 仅在悬浮窗未隐藏、当前可见且未勾选“总在最前”时生效，不影响原有置顶设置。
+
+### 文档
+
+- 根目录 `development.md` 重命名为 `AGENTS.md`（约定俗成的 agent 交接文档名），README、lhm_probe 构建脚本及相关引用同步更新。
+
+### 版本
+
+- 版本号由 **1.86.3** 提升到 **1.86.4**。
+- README 更新当前版本、下载文件名与特性说明。
+
+### 验证
+
+- Visual Studio 2022 x64 Release 完整版与 Lite 版编译通过（0 错误）。
+
+---
+
 ## V1.86.3
 
 发布日期：2026-10-07

@@ -4,7 +4,7 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 ## 当前版本
 
-**V1.86.3** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
+**V1.86.4** —— 基于上游 1.86 与 mackid1993 的 `feature/reserve-taskbar-space` 分支。
 
 本 README 只做项目总览，不按版本记录细节。完整版本历史和 Release note 见 [changelog.md](changelog.md)。
 
@@ -30,19 +30,23 @@ TrafficMonitorPlus 是 [mackid1993/TrafficMonitor](https://github.com/mackid1993
 
 切换 Windows 深浅色主题时，通知区图标改为原地更新，任务栏窗口与托盘空间预留不再被反复销毁重建，任务栏不会假死；通知区图标黑白配色依旧自动跟随主题。
 
+### 显示桌面时悬浮窗保持可见
+
+点击任务栏右下角或按 Win+D / Win+M 显示桌面时，悬浮窗不再被抬升的桌面窗口遮住，也不会被最小化后无法还原；即使窗口被系统命令最小化，程序也会自动将其还原，悬浮窗始终可见。
+
 ## 文档
 
 - 使用说明：[上游 Help.md](https://github.com/zhongyang219/TrafficMonitor/blob/master/Help.md)
 - 版本更新记录与 Release note：[changelog.md](changelog.md)
-- 构建、架构、发布和交接说明：[development.md](development.md)
+- 构建、架构、发布和交接说明：[AGENTS.md](AGENTS.md)
 - 皮肤制作教程：[皮肤制作教程.md](皮肤制作教程.md)
 
 ## 下载
 
 见 [Releases](https://github.com/wiggins-kong/TrafficMonitorPlus/releases)。当前发行版提供：
 
-- `TrafficMonitorPlus_V1.86.3_x64.zip`：完整版，包含硬件监控；
-- `TrafficMonitorPlus_V1.86.3_x64_Lite.zip`：Lite 版，不含硬件监控相关 DLL。
+- `TrafficMonitorPlus_V1.86.4_x64.zip`：完整版，包含硬件监控；
+- `TrafficMonitorPlus_V1.86.4_x64_Lite.zip`：Lite 版，不含硬件监控相关 DLL。
 
 ## 使用硬件监控时的注意事项
 

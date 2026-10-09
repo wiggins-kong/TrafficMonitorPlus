@@ -1,7 +1,8 @@
 # TrafficMonitorPlus 开发文档
 
 > 目的：让任何一台电脑上的开发者 / agent 能无缝接手本项目。
-> 最后更新：2026-10-07（对应版本 V1.86.3，分支 `master`）
+> 文件名为约定俗成的 `AGENTS.md`（原 `development.md`）。
+> 最后更新：2026-10-09（对应版本 V1.86.4，分支 `master`）
 
 ---
 
@@ -18,13 +19,14 @@
 
 ### 当前状态
 
-- 当前版本：**V1.86.3**。
+- 当前版本：**V1.86.4**。
 - `master` 是唯一发布线，标签格式为 `V<major>.<minor>.<patch>`。
 - 文档入口：
   - `README.md`：面向用户和下载者。
   - `changelog.md`：版本更新记录，也是 GitHub Release note 的来源。
-  - `development.md`：本文件，记录架构、构建、验证和发版流程。
+  - `AGENTS.md`：本文件（原 `development.md`），记录架构、构建、验证和发版流程。
   - `皮肤制作教程.md`：面向皮肤作者的完整教程。
+- V1.86.4 修复"显示桌面"（Win+D / Win+M / 点击任务栏右下角）时悬浮窗被桌面窗口遮住或被最小化的问题（见第 9 节）。
 - V1.86.3 修复切换系统深浅色主题时任务栏假死的问题（换图标改 `NIM_MODIFY`、主题切换期间托盘预留静默，见 8.4 节）。
 - V1.86.2 新增皮肤跟随 Windows 深浅色自动切换，并补齐了完整皮肤制作教程。
 - V1.86.1 的硬件监控崩溃修复仍然保留，回归测试时不要破坏相关异常保护。
@@ -49,7 +51,7 @@ git remote add upstream https://github.com/mackid1993/TrafficMonitor
 ```
 
 - `master` = 上游 master + mackid1993 的 `feature/reserve-taskbar-space` + 本仓库的修改（**发布线**）。
-  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → V1.86.1 → V1.86.2 → V1.86.3`。
+  当前 master 的历史脉络：`... → 430f14d(上游 1.86) → 69974ac..617dcd7(mackid1993 的预留空间功能) → V1.86.1 → V1.86.2 → V1.86.3 → V1.86.4`。
 - 工作分支命名参考：`feat/skin-theme-auto-switch`。
 - 发布：在 `master` 上打 `V<版本>` 标签并推送，工作流会自动编译并发布 Release（见第 7 节）。
 
@@ -61,15 +63,15 @@ git remote add upstream https://github.com/mackid1993/TrafficMonitor
 
 | 文件 | 需要修改的内容 | 作用 |
 | --- | --- | --- |
-| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.3"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
-| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,3,0`、`PRODUCTVERSION 1,86,3,0`、`VALUE "FileVersion", "1.86.3.0"`、`VALUE "ProductVersion", "1.86.3.0"` | 可执行文件属性里的版本 |
-| `version.info` | `<version>1.86.3</version>` | 更新信息文件元数据（Gitee 用） |
-| `version_utf8.info` | `<version>1.86.3</version>` | 更新信息文件元数据（GitHub 用） |
+| `TrafficMonitor/stdafx.h` | `#define VERSION L"1.86.4"` | 程序显示的版本（关于对话框、崩溃日志的 `Version:`、`config.ini` 的 `[app] version`） |
+| `TrafficMonitor/TrafficMonitor.rc` | `FILEVERSION 1,86,4,0`、`PRODUCTVERSION 1,86,4,0`、`VALUE "FileVersion", "1.86.4.0"`、`VALUE "ProductVersion", "1.86.4.0"` | 可执行文件属性里的版本 |
+| `version.info` | `<version>1.86.4</version>` | 更新信息文件元数据（Gitee 用） |
+| `version_utf8.info` | `<version>1.86.4</version>` | 更新信息文件元数据（GitHub 用） |
 
 注意事项：
 
 - `TrafficMonitor.rc` 是 **UTF-16LE** 编码，请用支持 UTF-16 的编辑器修改；命令行里 grep 要加 `-a`。
-- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的四段形式，例如 V1.86.3 对应 `1,86,3,0`，**不要改回 `1,8,6,3`**。
+- `FILEVERSION` 的编码方式：上游把 1.86 写成 `1,8,6,0`（把 86 视作 8.6）。本仓库从 1.86.1 起改成与显示版本一致的四段形式，例如 V1.86.4 对应 `1,86,4,0`，**不要改回 `1,8,6,4`**。
 - 程序运行时**不读**本地的 `version.info` / `version_utf8.info`；它们只是随包提供的元数据。程序内置的更新检查请求的是上游仓库的 URL（见 `TrafficMonitor/UpdateHelper.cpp`，仍然是 `zhongyang219`），如果要改成 TrafficMonitorPlus 自己的更新通道，需要同时改这里和上面的下载链接（见第 8 节待办）。
 
 ---
@@ -254,15 +256,15 @@ SetHddEnable(true)       -> false
 ```
 git switch master && git pull
 # 1) 更新第 2 节的 4 个版本号位置
-# 2) 在根目录 changelog.md 顶部新增一节：## V1.86.3
-git commit -am "chore: 版本号更新到 V1.86.3"
+# 2) 在根目录 changelog.md 顶部新增一节：## V1.86.4
+git commit -am "chore: 版本号更新到 V1.86.4"
 git push origin master
-git tag V1.86.3 && git push origin V1.86.3
+git tag V1.86.4 && git push origin V1.86.4
 ```
 
 工作流 `.github/workflows/release.yml` 会在标签推送后：
 
-1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从根目录 `changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.3`）。
+1. **create-release**（ubuntu）：解析标签得到版本号 → 用 `.github/scripts/extract_changelog.py` 从根目录 `changelog.md` 提取该版本章节 → `gh release create` 创建 Release（标题 `TrafficMonitorPlus V1.86.4`）。
 2. **build-and-upload**（windows-2022）：检查并按需补装 MFC/ATL、C++/CLI、.NET 4.7.2 目标包 → 编译完整版与 Lite 版（x64）→ 用 `.github/scripts/package_release.ps1` 打包 → `gh release upload` 上传两个 zip。
 
 说明与注意事项：
@@ -272,7 +274,7 @@ git tag V1.86.3 && git push origin V1.86.3
 - 构建前必须让 MSBuild 在 PATH 中（工作流用 `microsoft/setup-msbuild@v2`）；否则报 `'msbuild' is not recognized`。
 - 打包脚本按 ZIP 规范写入正斜杠条目名，并且用 `Get-ChildItem -Name` 取相对路径（用 `Substring` 算相对路径在 runner 上会因为路径形态差异产生诸如 `64/` 的错误前缀）。
 - 也支持手动触发（Actions → Release → Run workflow，填写标签名）；Release 已存在时会用 `gh release edit` 更新说明，附件用 `--clobber` 覆盖，因此可以安全重跑。
-- 标签前缀 `v` / `V` 都可以；`changelog.md` 中的章节标题必须能被版本号匹配到（`## V1.86.3`）。
+- 标签前缀 `v` / `V` 都可以；`changelog.md` 中的章节标题必须能被版本号匹配到（`## V1.86.4`）。
 - 附件命名：`TrafficMonitorPlus_V<版本>_x64.zip`（完整版）、`TrafficMonitorPlus_V<版本>_x64_Lite.zip`（Lite 版）。
 - 目前只构建 x64；如需 x86 / ARM64EC，参照上游 `.github/workflows/main.yml` 增加 msbuild 调用与打包即可（Lite 解决方案已支持 `--p:Platform=x86` / `ARM64EC`）。
 
@@ -336,7 +338,18 @@ LICENSE_CN
 
 ---
 
-## 9. 待办 / 已知问题
+## 9. 显示桌面与最小化行为（V1.86.4）
+
+悬浮窗没有任务栏按钮，被最小化后无法手动还原；点击"显示桌面"（任务栏右下角、Win+D）时桌面窗口会被抬升到悬浮窗之上，把悬浮窗遮住。V1.86.4 的约定：
+
+- `CTrafficMonitorDlg::OnSysCommand()` 忽略 `SC_MINIMIZE`（Win+M / 显示桌面会向窗口发送此命令），避免悬浮窗被最小化。
+- `SHOW_DESKTOP_TIMER`（`stdafx.h`，100 ms）在 `OnTimer()` 中：窗口被最小化时用 `ShowWindow(SW_SHOWNOACTIVATE)` 还原；悬浮窗可见且未置顶（`m_always_on_top` 为假、`m_hide_main_window` 为假）时调用 `CheckShowDesktop()`。
+- `CheckShowDesktop()` 沿 `GW_HWNDPREV` 查找悬浮窗之前的桌面窗口（`GetShellWindow()` 或宿主 `SHELLDLL_DefView` 的窗口，遇到置顶窗口即停止），发现被遮住后用 `SetWindowPos(&wndNoTopMost, ...)` 把悬浮窗移到所有非置顶窗口之上。
+- 桌面窗口只认 `GetShellWindow()` 与 `SHELLDLL_DefView` 的宿主窗口：其他 `WorkerW`（例如右键桌面菜单时短暂出现的）不能当作桌面窗口，否则悬浮窗会因误判而闪烁。
+
+---
+
+## 10. 待办 / 已知问题
 
 - [ ] **显卡温度**：本机（Intel 显卡）在 0.9.4 / 0.9.6 下都取不到 GPU 温度传感器（能取到利用率），"显卡温度"恒为 `--`。如需进一步确认，可在目标机器上跑官方 LibreHardwareMonitor GUI 看是否存在温度节点；这属于库/硬件限制，不是 TrafficMonitor 的 bug。
 - [ ] **更新通道**：`TrafficMonitor/UpdateHelper.cpp` 仍指向 `zhongyang219` 的仓库；若要改成 TrafficMonitorPlus 自己的更新通道，需要同时更新 `version.info` / `version_utf8.info` 中的链接（目前只改了 `<version>`）。
